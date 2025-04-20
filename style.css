@@ -64,11 +64,3 @@ button:hover {
 #viewsLeft.neutral {
   color: black;
 }
-
-#spikeSchedule {
-  background-color: #f1f1f1;
-  padding: 10px;
-  border-radius: 6px;
-  white-space: pre-line;
-  font-family: monospace;
-}
