@@ -1,47 +1,51 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>YouTube Live View Tracker</title>
+  <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    body { font-family: Arial; padding: 20px; }
-    input { width: 100%; margin-bottom: 10px; padding: 8px; font-size: 16px; }
-    button { padding: 10px 20px; font-size: 16px; background-color: #007bff; color: white; border: none; cursor: pointer; }
-    button:hover { background-color: #0056b3; }
-    #viewDiff { font-weight: bold; }
-    .green { color: green; }
-    .red { color: red; }
-    #spinner { display: none; margin: 10px 0; }
-  </style>
 </head>
 <body>
-  <h2>YouTube Live View Tracker</h2>
+  <div class="container">
+    <h1>YouTube Live View Tracker</h1>
 
-  <label>Video ID:</label>
-  <input type="text" id="videoId" value="uRkwOqBvwV4">
+    <label for="videoId">Video ID:</label>
+    <input type="text" id="videoId" value="uRkwOqBvwV4">
 
-  <label>Target Views:</label>
-  <input type="number" id="targetViews" value="3110000">
+    <label for="targetViews">Target Views:</label>
+    <input type="number" id="targetViews" value="3110000">
 
-  <label>Target Time (DD:MM:YYYY HH:MM):</label>
-  <input type="datetime-local" id="targetTime" value="2025-04-20T23:59">
+    <label for="targetTime">Target Time:</label>
+    <input type="datetime-local" id="targetTime">
 
-  <label>First Spike Time (DD:MM:YYYY HH:MM:SS):</label>
-  <input type="datetime-local" id="firstSpikeTime" value="2025-04-20T23:38:30">
+    <label for="firstSpikeTime">First Spike Time:</label>
+    <input type="datetime-local" id="firstSpikeTime">
 
-  <label>Spike Interval (minutes):</label>
-  <input type="number" id="spikeInterval" value="5">
+    <label for="spikeInterval">Spike Interval (minutes):</label>
+    <input type="number" id="spikeInterval" value="5">
 
-  <button onclick="startTracking()">Start Tracking</button>
+    <button onclick="startTracking()">Start Tracking</button>
 
-  <div id="spinner">⏳ Collecting data...</div>
+    <div class="stats">
+      <p>Live Views: <span id="liveViews">-</span></p>
+      <p>Last 5 Min Views: <span id="last5Min">-</span></p>
+      <p>Last 15 Min Views: <span id="last15Min">-</span></p>
+      <p>Last 20 Min Views: <span id="last20Min">-</span></p>
+      <p>Last 25 Min Views: <span id="last25Min">-</span></p>
+      <p>Last 30 Min Views: <span id="last30Min">-</span></p>
+      <p>Avg Views/Min (15min): <span id="avg15Min">-</span></p>
+      <p>Required Rate (Views/Min): <span id="requiredRate">-</span></p>
+      <p>Required Views in Next 5 Min: <span id="requiredNext5">-</span></p>
+      <p>Projected Views: <span id="projectedViews">-</span></p>
+      <p>Forecast: <span id="forecast">-</span></p>
+      <p>Time Left: <span id="timeLeft">-</span></p>
+      <p>Views Left to Meet Target: <span id="viewsLeft" class="neutral">-</span></p>
+      <p>Upcoming Spike Times & Required Views:</p>
+      <pre id="spikeSchedule">-</pre>
+    </div>
 
-  <h3>Live Stats</h3>
-  <div id="stats"></div>
-
-  <canvas id="viewChart" width="400" height="200"></canvas>
+    <canvas id="viewChart" width="400" height="200"></canvas>
+  </div>
 
   <script src="script.js"></script>
 </body>
