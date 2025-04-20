@@ -28,10 +28,6 @@ input {
   border-radius: 6px;
 }
 
-input[type="datetime-local"] {
-  font-size: 16px;
-}
-
 button {
   background-color: #007bff;
   color: white;
@@ -41,10 +37,6 @@ button {
   border-radius: 6px;
   cursor: pointer;
   margin-top: 10px;
-}
-
-button:hover {
-  background-color: #0056b3;
 }
 
 .stats {
