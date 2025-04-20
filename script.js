@@ -4,30 +4,32 @@ let chartLabels = [];
 let tracking = false;
 let interval;
 let startTime;
-let targetTime;
-let firstSpikeTime;
-let spikeInterval;
+let endTime;
 let videoId = "";
 let targetViews = 0;
 let apiKey = "AIzaSyCo5NvQZpziJdaCsOjf1H2Rq-1YeiU9Uq8";
-let viewsLeftToMeetTarget = 0;
 
 function startTracking() {
   clearInterval(interval);
   tracking = true;
   videoId = document.getElementById("videoId").value;
   targetViews = parseInt(document.getElementById("targetViews").value);
-  targetTime = new Date(document.getElementById("targetTime").value);
-  firstSpikeTime = new Date(document.getElementById("firstSpikeTime").value);
-  spikeInterval = parseInt(document.getElementById("spikeInterval").value);
+  const targetTimeString = document.getElementById("targetTime").value;
+
+  if (!targetTimeString) {
+    alert("Please select a target date and time.");
+    return;
+  }
+
   startTime = new Date();
+  endTime = new Date(targetTimeString);
 
   if (!chart) {
     initChart();
   }
 
   updateStats();
-  interval = setInterval(updateStats, 60000); // 1 minute interval
+  interval = setInterval(updateStats, 60000); // every minute
 }
 
 function initChart() {
@@ -48,9 +50,7 @@ function initChart() {
     },
     options: {
       scales: {
-        y: {
-          beginAtZero: false
-        }
+        y: { beginAtZero: false }
       }
     }
   });
@@ -62,53 +62,78 @@ function updateStats() {
     .then(data => {
       const viewCount = parseInt(data.items[0].statistics.viewCount);
       const currentTime = new Date();
-      const minutesPassed = Math.floor((currentTime - startTime) / 60000);
-      const timeLeft = Math.max(0, (targetTime - currentTime) / 60000); // minutes left to target time
+
+      const timeLeftMinutes = Math.max(0, Math.floor((endTime - currentTime) / 60000));
+      const viewsLeft = Math.max(0, targetViews - viewCount);
 
       chartLabels.push(currentTime.toLocaleTimeString());
       chartData.push(viewCount);
       chart.update();
 
-      const requiredRate = (targetViews - viewCount) / timeLeft;
-      const viewsLeft = Math.max(0, targetViews - viewCount);
+      const last5 = chartData.length >= 6 ? viewCount - chartData[chartData.length - 6] : 0;
+      const viewsPerMin = last5 / 5;
+      const requiredRate = timeLeftMinutes > 0 ? (viewsLeft) / timeLeftMinutes : 0;
+      const requiredNext5 = requiredRate * 5;
+      const projectedViews = Math.floor(viewCount + (viewsPerMin * timeLeftMinutes));
+      const forecast = projectedViews >= targetViews ? "Yes" : "No";
 
-      const spikeTimesAndViews = calculateSpikeTimesAndViews(viewCount, timeLeft);
+      function getViewsDiff(minutes) {
+        const index = chartData.length - minutes;
+        return index >= 0 ? viewCount - chartData[index] : 0;
+      }
+
+      const last15 = getViewsDiff(15);
+      const last20 = getViewsDiff(20);
+      const last25 = getViewsDiff(25);
+      const last30 = getViewsDiff(30);
+      const avg15 = last15 / 15;
 
       document.getElementById("liveViews").innerText = viewCount.toLocaleString();
-      document.getElementById("timeLeft").innerText = `${timeLeft.toFixed(0)} minutes left`;
+      document.getElementById("last5Min").innerText = last5.toLocaleString();
+      document.getElementById("last15Min").innerText = last15.toLocaleString();
+      document.getElementById("last20Min").innerText = last20.toLocaleString();
+      document.getElementById("last25Min").innerText = last25.toLocaleString();
+      document.getElementById("last30Min").innerText = last30.toLocaleString();
+      document.getElementById("avg15Min").innerText = avg15.toFixed(2);
+      document.getElementById("requiredRate").innerText = requiredRate.toFixed(2);
+      document.getElementById("requiredNext5").innerText = Math.round(requiredNext5).toLocaleString();
+      document.getElementById("projectedViews").innerText = projectedViews.toLocaleString();
+      document.getElementById("forecast").innerText = forecast;
+
+      const timeLeftString = `${timeLeftMinutes}:${(60 - currentTime.getSeconds()).toString().padStart(2, "0")}`;
+      document.getElementById("timeLeft").innerText = timeLeftString;
 
       const viewsLeftEl = document.getElementById("viewsLeft");
       viewsLeftEl.innerText = viewsLeft.toLocaleString();
       viewsLeftEl.classList.remove("green", "red", "neutral");
-      viewsLeftEl.classList.add((requiredRate > 0) ? "green" : "red");
+      viewsLeftEl.classList.add(forecast === "Yes" ? "green" : "red");
 
-      const spikeHtml = spikeTimesAndViews.map(item => `${item.time} => ${item.requiredViews}`).join(' | ');
+      // ⏰ Calculate Spike Times
+      const firstSpikeInput = document.getElementById("firstSpikeTime").value;
+      const spikeInterval = parseInt(document.getElementById("spikeInterval").value);
+      const spikeOutput = document.getElementById("spikeSchedule");
 
-      document.getElementById("stats").innerHTML = `
-        Live View Count: ${viewCount.toLocaleString()}<br>
-        Upcoming Spike Times & Required Views: ${spikeHtml}<br>
-        Views Left to Meet Target: ${viewsLeft.toLocaleString()}
-      `;
+      if (firstSpikeInput && spikeInterval && spikeInterval > 0) {
+        const spikeTimes = [];
+        const firstSpikeTime = new Date(firstSpikeInput);
+        const totalSpikes = [];
+
+        for (let t = new Date(firstSpikeTime); t <= endTime; t.setMinutes(t.getMinutes() + spikeInterval)) {
+          if (t > currentTime) {
+            totalSpikes.push(new Date(t));
+          }
+        }
+
+        const viewsPerSpike = totalSpikes.length > 0 ? Math.ceil(viewsLeft / totalSpikes.length) : 0;
+
+        spikeOutput.innerText = totalSpikes.map(time => {
+          return `${time.toLocaleTimeString()} - Needs ${viewsPerSpike.toLocaleString()} views`;
+        }).join('\n') || "-";
+      } else {
+        spikeOutput.innerText = "-";
+      }
     })
     .catch(error => {
       console.error("Error fetching YouTube data:", error);
     });
-}
-
-function calculateSpikeTimesAndViews(currentViews, timeLeft) {
-  const spikes = [];
-  const firstSpikeTimeAdjusted = firstSpikeTime.getTime();
-  
-  let spikeTime = firstSpikeTimeAdjusted;
-  let viewsLeft = targetViews - currentViews;
-  let totalSpikes = Math.floor(timeLeft / spikeInterval);
-
-  for (let i = 0; i < totalSpikes; i++) {
-    const nextSpikeTime = new Date(spikeTime + (i * spikeInterval * 60000));
-    const timeToNextSpike = Math.max(0, (nextSpikeTime - Date.now()) / 60000);
-    const requiredViews = Math.ceil(viewsLeft / (totalSpikes - i));
-    spikes.push({ time: nextSpikeTime.toLocaleTimeString(), requiredViews });
-  }
-
-  return spikes;
 }
