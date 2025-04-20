@@ -4,7 +4,7 @@ let chartLabels = [];
 let tracking = false;
 let interval;
 let startTime;
-let targetMinutes = 0;
+let endTime;
 let videoId = "";
 let targetViews = 0;
 let apiKey = "AIzaSyCo5NvQZpziJdaCsOjf1H2Rq-1YeiU9Uq8";
@@ -14,30 +14,22 @@ function startTracking() {
   tracking = true;
   videoId = document.getElementById("videoId").value;
   targetViews = parseInt(document.getElementById("targetViews").value);
+  const targetTimeString = document.getElementById("targetTime").value;
+
+  if (!targetTimeString) {
+    alert("Please select a target date and time.");
+    return;
+  }
+
   startTime = new Date();
-
-  const targetInput = document.getElementById("targetTime").value;
-  const targetDate = new Date(targetInput);
-
-  if (isNaN(targetDate.getTime())) {
-    alert("Invalid target time. Please use the picker.");
-    return;
-  }
-
-  const now = new Date();
-  targetMinutes = Math.ceil((targetDate - now) / 60000);
-
-  if (targetMinutes <= 0) {
-    alert("Target time must be in the future.");
-    return;
-  }
+  endTime = new Date(targetTimeString);
 
   if (!chart) {
     initChart();
   }
 
   updateStats();
-  interval = setInterval(updateStats, 60000);
+  interval = setInterval(updateStats, 60000); // every minute
 }
 
 function initChart() {
@@ -58,9 +50,7 @@ function initChart() {
     },
     options: {
       scales: {
-        y: {
-          beginAtZero: false
-        }
+        y: { beginAtZero: false }
       }
     }
   });
@@ -72,8 +62,8 @@ function updateStats() {
     .then(data => {
       const viewCount = parseInt(data.items[0].statistics.viewCount);
       const currentTime = new Date();
-      const minutesPassed = Math.floor((currentTime - startTime) / 60000);
-      const timeLeft = Math.max(0, targetMinutes - minutesPassed);
+
+      const timeLeftMinutes = Math.max(0, Math.floor((endTime - currentTime) / 60000));
 
       chartLabels.push(currentTime.toLocaleTimeString());
       chartData.push(viewCount);
@@ -81,18 +71,15 @@ function updateStats() {
 
       const last5 = chartData.length >= 6 ? viewCount - chartData[chartData.length - 6] : 0;
       const viewsPerMin = last5 / 5;
-      const requiredRate = timeLeft > 0 ? (targetViews - viewCount) / timeLeft : 0;
+      const requiredRate = timeLeftMinutes > 0 ? (targetViews - viewCount) / timeLeftMinutes : 0;
       const requiredNext5 = requiredRate * 5;
-      const projectedViews = Math.floor(viewCount + (viewsPerMin * timeLeft));
+      const projectedViews = Math.floor(viewCount + (viewsPerMin * timeLeftMinutes));
       const forecast = projectedViews >= targetViews ? "Yes" : "No";
       const viewsLeft = Math.max(0, targetViews - viewCount);
 
       function getViewsDiff(minutes) {
         const index = chartData.length - minutes;
-        if (index >= 0) {
-          return viewCount - chartData[index];
-        }
-        return 0;
+        return index >= 0 ? viewCount - chartData[index] : 0;
       }
 
       const last15 = getViewsDiff(15);
@@ -107,12 +94,14 @@ function updateStats() {
       document.getElementById("last20Min").innerText = last20.toLocaleString();
       document.getElementById("last25Min").innerText = last25.toLocaleString();
       document.getElementById("last30Min").innerText = last30.toLocaleString();
-      document.getElementById("avg15Min").innerText = isFinite(avg15) ? avg15.toFixed(2) : "-";
-      document.getElementById("requiredRate").innerText = isFinite(requiredRate) ? requiredRate.toFixed(2) : "-";
-      document.getElementById("requiredNext5").innerText = isFinite(requiredNext5) ? Math.round(requiredNext5).toLocaleString() : "-";
+      document.getElementById("avg15Min").innerText = avg15.toFixed(2);
+      document.getElementById("requiredRate").innerText = requiredRate.toFixed(2);
+      document.getElementById("requiredNext5").innerText = Math.round(requiredNext5).toLocaleString();
       document.getElementById("projectedViews").innerText = projectedViews.toLocaleString();
       document.getElementById("forecast").innerText = forecast;
-      document.getElementById("timeLeft").innerText = `${timeLeft}:${(60 - currentTime.getSeconds()).toString().padStart(2, "0")}`;
+
+      const timeLeftString = `${timeLeftMinutes}:${(60 - currentTime.getSeconds()).toString().padStart(2, "0")}`;
+      document.getElementById("timeLeft").innerText = timeLeftString;
 
       const viewsLeftEl = document.getElementById("viewsLeft");
       viewsLeftEl.innerText = viewsLeft.toLocaleString();
