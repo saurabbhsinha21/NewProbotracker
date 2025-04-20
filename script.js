@@ -16,19 +16,11 @@ function startTracking() {
   targetViews = parseInt(document.getElementById("targetViews").value);
   startTime = new Date();
 
-  const targetInput = document.getElementById("targetTime").value.trim();
-  const [datePart, timePart] = targetInput.split(" ");
-  if (!datePart || !timePart) {
-    alert("Please enter time in format dd:mm:yyyy hh:mm");
-    return;
-  }
-
-  const [day, month, year] = datePart.split(":").map(Number);
-  const [hour, minute] = timePart.split(":").map(Number);
-  const targetDate = new Date(year, month - 1, day, hour, minute);
+  const targetInput = document.getElementById("targetTime").value;
+  const targetDate = new Date(targetInput);
 
   if (isNaN(targetDate.getTime())) {
-    alert("Invalid target time format. Use dd:mm:yyyy hh:mm");
+    alert("Invalid target time. Please use the picker.");
     return;
   }
 
