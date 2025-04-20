@@ -19,29 +19,29 @@
     <input type="datetime-local" id="targetTime">
 
     <label for="firstSpikeTime">First Spike Time:</label>
-    <input type="datetime-local" id="firstSpikeTime">
+    <input type="datetime-local" id="firstSpikeTime" step="1">
 
     <label for="spikeInterval">Spike Interval (minutes):</label>
-    <input type="datetime-local" id="firstSpikeTime" step="1">
+    <input type="number" id="spikeInterval" min="1" step="1" placeholder="Enter spike interval in minutes">
 
     <button onclick="startTracking()">Start Tracking</button>
 
     <div class="stats">
-      <p>Live Views: <span id="liveViews">-</span></p>
+      <p>Live View Count: <span id="liveViews">-</span></p>
       <p>Last 5 Min Views: <span id="last5Min">-</span></p>
       <p>Last 15 Min Views: <span id="last15Min">-</span></p>
       <p>Last 20 Min Views: <span id="last20Min">-</span></p>
       <p>Last 25 Min Views: <span id="last25Min">-</span></p>
       <p>Last 30 Min Views: <span id="last30Min">-</span></p>
-      <p>Avg Views/Min (15min): <span id="avg15Min">-</span></p>
-      <p>Required Rate (Views/Min): <span id="requiredRate">-</span></p>
-      <p>Required Views in Next 5 Min: <span id="requiredNext5">-</span></p>
+      <p>Avg Views/Min (15m): <span id="avg15Min">-</span></p>
+      <p>Views/min Required: <span id="requiredRate">-</span></p>
+      <p>Views Required in next 5 min: <span id="requiredNext5">-</span></p>
       <p>Projected Views: <span id="projectedViews">-</span></p>
       <p>Forecast: <span id="forecast">-</span></p>
       <p>Time Left: <span id="timeLeft">-</span></p>
       <p>Views Left to Meet Target: <span id="viewsLeft" class="neutral">-</span></p>
-      <p>Upcoming Spike Times & Required Views:</p>
-      <pre id="spikeSchedule">-</pre>
+      <p><strong>Upcoming Spike Times & Required Views:</strong></p>
+      <div id="spikeSchedule">-</div>
     </div>
 
     <canvas id="viewChart" width="400" height="200"></canvas>
