@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>YouTube Live View Tracker</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>YouTube Live View Tracker</h1>
+
+    <label for="videoId">Video ID:</label>
+    <input type="text" id="videoId" value="uRkwOqBvwV4">
+
+    <label for="targetViews">Target Views:</label>
+    <input type="number" id="targetViews" value="3110000">
+
+    <label for="targetTime">Target Time (dd:mm:yyyy hh:mm):</label>
+    <input type="text" id="targetTime" placeholder="20:04:2025 14:30">
+
+    <button onclick="startTracking()">Start Tracking</button>
+
+    <div class="stats">
+      <p>Live Views: <span id="liveViews">-</span></p>
+      <p>Last 5 min Views: <span id="last5Min">-</span></p>
+      <p>Last 15 min Views: <span id="last15Min">-</span></p>
+      <p>Last 20 min Views: <span id="last20Min">-</span></p>
+      <p>Last 25 min Views: <span id="last25Min">-</span></p>
+      <p>Last 30 min Views: <span id="last30Min">-</span></p>
+      <p>Avg Views/Min (15 min): <span id="avg15Min">-</span></p>
+      <p>Views/min Required: <span id="requiredRate">-</span></p>
+      <p>Views Required in next 5 min: <span id="requiredNext5">-</span></p>
+      <p>Projected Views: <span id="projectedViews">-</span></p>
+      <p>Forecast: <span id="forecast">-</span></p>
+      <p>Time Left: <span id="timeLeft">-</span></p>
+      <p>Views Left to Meet Target: <span id="viewsLeft" class="neutral">-</span></p>
+    </div>
+
+    <canvas id="viewChart" width="400" height="200"></canvas>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
