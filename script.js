@@ -15,14 +15,18 @@ function startTracking() {
   videoId = document.getElementById("videoId").value;
   targetViews = parseInt(document.getElementById("targetViews").value);
   const targetTimeString = document.getElementById("targetTime").value;
+  const firstSpikeString = document.getElementById("firstSpikeTime").value;
+  const spikeIntervalMin = parseInt(document.getElementById("spikeInterval").value);
 
-  if (!targetTimeString) {
-    alert("Please select a target date and time.");
+  if (!targetTimeString || !firstSpikeString || isNaN(spikeIntervalMin)) {
+    alert("Please fill in all time and interval fields correctly.");
     return;
   }
 
   startTime = new Date();
   endTime = new Date(targetTimeString);
+  window.firstSpikeTime = new Date(firstSpikeString);
+  window.spikeIntervalMs = spikeIntervalMin * 60000;
 
   if (!chart) {
     initChart();
@@ -72,7 +76,7 @@ function updateStats() {
 
       const last5 = chartData.length >= 6 ? viewCount - chartData[chartData.length - 6] : 0;
       const viewsPerMin = last5 / 5;
-      const requiredRate = timeLeftMinutes > 0 ? (viewsLeft) / timeLeftMinutes : 0;
+      const requiredRate = timeLeftMinutes > 0 ? viewsLeft / timeLeftMinutes : 0;
       const requiredNext5 = requiredRate * 5;
       const projectedViews = Math.floor(viewCount + (viewsPerMin * timeLeftMinutes));
       const forecast = projectedViews >= targetViews ? "Yes" : "No";
@@ -108,32 +112,33 @@ function updateStats() {
       viewsLeftEl.classList.remove("green", "red", "neutral");
       viewsLeftEl.classList.add(forecast === "Yes" ? "green" : "red");
 
-      // ⏰ Calculate Spike Times
-      const firstSpikeInput = document.getElementById("firstSpikeTime").value;
-      const spikeInterval = parseInt(document.getElementById("spikeInterval").value);
-      const spikeOutput = document.getElementById("spikeSchedule");
-
-      if (firstSpikeInput && spikeInterval && spikeInterval > 0) {
-        const spikeTimes = [];
-        const firstSpikeTime = new Date(firstSpikeInput);
-        const totalSpikes = [];
-
-        for (let t = new Date(firstSpikeTime); t <= endTime; t.setMinutes(t.getMinutes() + spikeInterval)) {
-          if (t > currentTime) {
-            totalSpikes.push(new Date(t));
-          }
-        }
-
-        const viewsPerSpike = totalSpikes.length > 0 ? Math.ceil(viewsLeft / totalSpikes.length) : 0;
-
-        spikeOutput.innerText = totalSpikes.map(time => {
-          return `${time.toLocaleTimeString()} - Needs ${viewsPerSpike.toLocaleString()} views`;
-        }).join('\n') || "-";
-      } else {
-        spikeOutput.innerText = "-";
-      }
+      updateSpikeSchedule(currentTime, viewsLeft);
     })
     .catch(error => {
       console.error("Error fetching YouTube data:", error);
     });
+}
+
+function updateSpikeSchedule(currentTime, viewsLeft) {
+  const scheduleEl = document.getElementById("spikeSchedule");
+  if (!window.firstSpikeTime || !window.spikeIntervalMs) {
+    scheduleEl.innerHTML = "No spike schedule set.";
+    return;
+  }
+
+  const spikes = [];
+  let spikeTime = new Date(window.firstSpikeTime);
+  while (spikeTime <= endTime) {
+    if (spikeTime >= currentTime) {
+      spikes.push(new Date(spikeTime));
+    }
+    spikeTime = new Date(spikeTime.getTime() + window.spikeIntervalMs);
+  }
+
+  const viewsPerSpike = spikes.length > 0 ? Math.ceil(viewsLeft / spikes.length) : "-";
+  const formatted = spikes.map((t, i) =>
+    `${i + 1}. ${t.toLocaleTimeString()} — ${viewsPerSpike.toLocaleString()} views`
+  );
+
+  scheduleEl.innerHTML = formatted.length ? formatted.join("<br>") : "No upcoming spikes.";
 }
