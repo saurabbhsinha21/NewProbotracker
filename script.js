@@ -1,9 +1,9 @@
-let chart; 
+let chart;
 let chartData = [];
 let chartLabels = [];
 let chartTimestamps = [];
 let tracking = false;
-let interval;  
+let interval;
 let startTime;
 let endTime;
 let videoId = "";
@@ -56,8 +56,6 @@ function initChart() {
       }]
     },
     options: {
-      responsive: true,
-      maintainAspectRatio: false,
       scales: {
         y: { beginAtZero: false }
       }
@@ -77,9 +75,11 @@ function updateStats() {
       chartTimestamps.push(currentTime);
       chart.update();
 
+      // Time left
       const timeLeftMinutes = Math.max(0, Math.floor((endTime - currentTime) / 60000));
       const viewsLeft = Math.max(0, targetViews - viewCount);
 
+      // Views over last X minutes using timestamps
       function getViewsInLastMinutes(minutes) {
         const cutoff = new Date(currentTime.getTime() - minutes * 60000);
         for (let i = chartTimestamps.length - 1; i >= 0; i--) {
@@ -104,6 +104,7 @@ function updateStats() {
       const projectedViews = Math.floor(viewCount + (viewsPerMin * timeLeftMinutes));
       const forecast = projectedViews >= targetViews ? "Yes" : "No";
 
+      // Update DOM
       document.getElementById("liveViews").innerText = viewCount.toLocaleString();
       document.getElementById("last5Min").innerText = last5.toLocaleString();
       document.getElementById("last10Min").innerText = last10.toLocaleString();
@@ -125,44 +126,39 @@ function updateStats() {
       viewsLeftEl.classList.remove("green", "red", "neutral");
       viewsLeftEl.classList.add(forecast === "Yes" ? "green" : "red");
 
-      updateSpikeForecast(viewsLeft, currentTime);
+       // Update spike list
+      updateSpikeList(viewCount, viewsLeft, currentTime);
     })
-    .catch(error => {
-      console.error("Error fetching YouTube data:", error);
-    });
+    .catch(err => console.error("YouTube API error:", err));
 }
 
-function updateSpikeForecast(viewsLeft, currentTime) {
-  const forecastContainer = document.getElementById("spikeForecast");
-  forecastContainer.innerHTML = "";
+function updateSpikeList(currentViews, viewsLeft, currentTime) {
+  const list = document.getElementById("spikeList");
+  list.innerHTML = "";
 
-  if (!firstSpikeTime || spikeInterval <= 0 || viewsLeft <= 0) return;
+  if (!firstSpikeTime || !spikeInterval) return;
 
-  const spikes = [];
+  let spikeTimes = [];
   let spikeTime = new Date(firstSpikeTime);
+
   while (spikeTime <= endTime) {
     if (spikeTime > currentTime) {
-      spikes.push(new Date(spikeTime));
+      spikeTimes.push(new Date(spikeTime));
     }
     spikeTime.setMinutes(spikeTime.getMinutes() + spikeInterval);
   }
 
-  if (spikes.length === 0) return;
-
-  const viewsPerSpike = Math.ceil(viewsLeft / spikes.length);
-
-  const heading = document.createElement("p");
-  heading.textContent = "Upcoming Spike Times & Required Views:";
-  heading.style.fontWeight = "bold";
-  heading.style.marginBottom = "0.5rem";
-  forecastContainer.appendChild(heading);
-
-  const ul = document.createElement("ul");
-  spikes.forEach(time => {
+  const viewsPerSpike = Math.ceil(viewsLeft / spikeTimes.length);
+  spikeTimes.forEach(time => {
     const li = document.createElement("li");
-    li.textContent = `${time.toLocaleTimeString()} - ${viewsPerSpike.toLocaleString()} views required`;
-    ul.appendChild(li);
+    li.innerText = `${time.toLocaleString()} - ${viewsPerSpike.toLocaleString()} views`;
+    list.appendChild(li);
   });
+}
 
-  forecastContainer.appendChild(ul);
+function updateSpikeTimes() {
+  const firstSpikeTimeString = document.getElementById("firstSpikeTime").value;
+  spikeInterval = parseInt(document.getElementById("spikeInterval").value);
+  if (!firstSpikeTimeString || !spikeInterval) return;
+  firstSpikeTime = new Date(firstSpikeTimeString);
 }
