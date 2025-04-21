@@ -7,8 +7,8 @@ let startTime;
 let endTime;
 let videoId = "";
 let targetViews = 0;
-let spikeStartTime;
-let spikeIntervalMinutes = 5;
+let firstSpikeTime;
+let spikeIntervalMin = 0;
 let apiKey = "AIzaSyCo5NvQZpziJdaCsOjf1H2Rq-1YeiU9Uq8";
 
 function startTracking() {
@@ -17,24 +17,24 @@ function startTracking() {
   videoId = document.getElementById("videoId").value;
   targetViews = parseInt(document.getElementById("targetViews").value);
   const targetTimeString = document.getElementById("targetTime").value;
-  const firstSpikeTimeString = document.getElementById("firstSpikeTime").value;
-  spikeIntervalMinutes = parseInt(document.getElementById("spikeInterval").value);
+  const spikeTimeString = document.getElementById("firstSpikeTime").value;
+  spikeIntervalMin = parseInt(document.getElementById("spikeInterval").value);
 
-  if (!targetTimeString || !firstSpikeTimeString) {
-    alert("Please select both target and first spike times.");
+  if (!targetTimeString || !spikeTimeString) {
+    alert("Please select target and first spike times.");
     return;
   }
 
   startTime = new Date();
   endTime = new Date(targetTimeString);
-  spikeStartTime = new Date(firstSpikeTimeString);
+  firstSpikeTime = new Date(spikeTimeString);
 
   if (!chart) {
     initChart();
   }
 
   updateStats();
-  interval = setInterval(updateStats, 60000); // every minute
+  interval = setInterval(updateStats, 10000); // every 10 seconds
 }
 
 function initChart() {
@@ -67,8 +67,8 @@ function updateStats() {
     .then(data => {
       const viewCount = parseInt(data.items[0].statistics.viewCount);
       const currentTime = new Date();
-
       const timeLeftMinutes = Math.max(0, Math.floor((endTime - currentTime) / 60000));
+      const timeLeftSeconds = Math.max(0, Math.floor((endTime - currentTime) / 1000));
 
       chartLabels.push(currentTime.toLocaleTimeString());
       chartData.push(viewCount);
@@ -76,17 +76,17 @@ function updateStats() {
 
       const last5 = chartData.length >= 6 ? viewCount - chartData[chartData.length - 6] : 0;
       const last10 = chartData.length >= 11 ? viewCount - chartData[chartData.length - 11] : 0;
-      const last15 = getViewsDiff(15);
-      const last20 = getViewsDiff(20);
-      const last25 = getViewsDiff(25);
-      const last30 = getViewsDiff(30);
+      const last15 = chartData.length >= 16 ? viewCount - chartData[chartData.length - 16] : 0;
+      const last20 = chartData.length >= 21 ? viewCount - chartData[chartData.length - 21] : 0;
+      const last25 = chartData.length >= 26 ? viewCount - chartData[chartData.length - 26] : 0;
+      const last30 = chartData.length >= 31 ? viewCount - chartData[chartData.length - 31] : 0;
       const avg15 = last15 / 15;
 
-      const viewsLeft = Math.max(0, targetViews - viewCount);
-      const requiredRate = timeLeftMinutes > 0 ? viewsLeft / timeLeftMinutes : 0;
+      const requiredRate = timeLeftMinutes > 0 ? (targetViews - viewCount) / timeLeftMinutes : 0;
       const requiredNext5 = requiredRate * 5;
       const projectedViews = Math.floor(viewCount + (last5 / 5 * timeLeftMinutes));
       const forecast = projectedViews >= targetViews ? "Yes" : "No";
+      const viewsLeft = Math.max(0, targetViews - viewCount);
 
       document.getElementById("liveViews").innerText = viewCount.toLocaleString();
       document.getElementById("last5Min").innerText = last5.toLocaleString();
@@ -109,37 +109,14 @@ function updateStats() {
       viewsLeftEl.classList.remove("green", "red", "neutral");
       viewsLeftEl.classList.add(forecast === "Yes" ? "green" : "red");
 
-      updateSpikeList(currentTime, viewCount, viewsLeft);
-    })
-    .catch(error => {
-      console.error("Error fetching YouTube data:", error);
-    });
-}
+      // 🟡 Spike Calculation
+      const spikeList = document.getElementById("spikeList");
+      spikeList.innerHTML = "";
 
-function getViewsDiff(minutes) {
-  const index = chartData.length - minutes;
-  return index >= 0 ? chartData[chartData.length - 1] - chartData[index] : 0;
-}
-
-function updateSpikeList(currentTime, currentViews, viewsLeft) {
-  const spikeList = document.getElementById("spikeList");
-  spikeList.innerHTML = "";
-
-  let spikeTime = new Date(spikeStartTime);
-  const spikes = [];
-
-  while (spikeTime <= endTime) {
-    if (spikeTime >= currentTime) {
-      spikes.push(new Date(spikeTime));
-    }
-    spikeTime.setMinutes(spikeTime.getMinutes() + spikeIntervalMinutes);
-  }
-
-  const viewsPerSpike = spikes.length > 0 ? Math.ceil(viewsLeft / spikes.length) : 0;
-
-  spikes.forEach(spike => {
-    const li = document.createElement("li");
-    li.textContent = `${spike.toLocaleTimeString()} - ${viewsPerSpike.toLocaleString()} views required`;
-    spikeList.appendChild(li);
-  });
-}
+      const spikes = [];
+      let spikeTime = new Date(firstSpikeTime);
+      while (spikeTime <= endTime) {
+        if (spikeTime > currentTime) {
+          spikes.push(new Date(spikeTime));
+        }
+        spikeTime.setMinutes(sp
