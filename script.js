@@ -34,7 +34,7 @@ function startTracking() {
   }
 
   updateStats();
-  interval = setInterval(updateStats, 10000); // every minute
+  interval = setInterval(updateStats, 10000); // every 10 seconds
 }
 
 function initChart() {
@@ -67,15 +67,16 @@ function updateStats() {
     .then(data => {
       const viewCount = parseInt(data.items[0].statistics.viewCount);
       const currentTime = new Date();
-
       const timeLeftMinutes = Math.max(0, Math.floor((endTime - currentTime) / 60000));
 
+      // Add new data point
       chartLabels.push(currentTime.toLocaleTimeString());
       chartData.push(viewCount);
       chart.update();
 
-      const last5 = chartData.length >= 6 ? viewCount - chartData[chartData.length - 6] : 0;
-      const last10 = chartData.length >= 11 ? viewCount - chartData[chartData.length - 11] : 0;
+      // Calculate view differences using 6 points per minute
+      const last5 = getViewsDiff(5);
+      const last10 = getViewsDiff(10);
       const last15 = getViewsDiff(15);
       const last20 = getViewsDiff(20);
       const last25 = getViewsDiff(25);
@@ -117,8 +118,15 @@ function updateStats() {
 }
 
 function getViewsDiff(minutes) {
-  const index = chartData.length - minutes;
-  return index >= 0 ? chartData[chartData.length - 1] - chartData[index] : 0;
+  const pointsPerMinute = 6; // 10-second intervals
+  const pointsAgo = minutes * pointsPerMinute;
+  const index = chartData.length - pointsAgo - 1;
+
+  if (index >= 0) {
+    return chartData[chartData.length - 1] - chartData[index];
+  } else {
+    return 0;
+  }
 }
 
 function updateSpikeList(currentTime, currentViews, viewsLeft) {
