@@ -1,40 +1,39 @@
 let chart;
 let chartData = [];
 let chartLabels = [];
-let tracking = false;
 let interval;
-let startTime;
-let endTime;
 let videoId = "";
 let targetViews = 0;
+let startTime;
+let endTime;
 let firstSpikeTime;
-let spikeIntervalMin = 0;
+let spikeInterval;
 let apiKey = "AIzaSyCo5NvQZpziJdaCsOjf1H2Rq-1YeiU9Uq8";
 
 function startTracking() {
   clearInterval(interval);
-  tracking = true;
+
   videoId = document.getElementById("videoId").value;
   targetViews = parseInt(document.getElementById("targetViews").value);
   const targetTimeString = document.getElementById("targetTime").value;
-  const spikeTimeString = document.getElementById("firstSpikeTime").value;
-  spikeIntervalMin = parseInt(document.getElementById("spikeInterval").value);
+  const firstSpikeTimeString = document.getElementById("firstSpikeTime").value;
+  spikeInterval = parseInt(document.getElementById("spikeInterval").value);
 
-  if (!targetTimeString || !spikeTimeString) {
-    alert("Please select target and first spike times.");
+  if (!targetTimeString || !firstSpikeTimeString || !spikeInterval) {
+    alert("Please enter all fields correctly.");
     return;
   }
 
   startTime = new Date();
   endTime = new Date(targetTimeString);
-  firstSpikeTime = new Date(spikeTimeString);
+  firstSpikeTime = new Date(firstSpikeTimeString);
 
   if (!chart) {
     initChart();
   }
 
   updateStats();
-  interval = setInterval(updateStats, 10000); // every 10 seconds
+  interval = setInterval(updateStats, 10000); // Every 10 seconds
 }
 
 function initChart() {
@@ -67,6 +66,7 @@ function updateStats() {
     .then(data => {
       const viewCount = parseInt(data.items[0].statistics.viewCount);
       const currentTime = new Date();
+
       const timeLeftMinutes = Math.max(0, Math.floor((endTime - currentTime) / 60000));
       const timeLeftSeconds = Math.max(0, Math.floor((endTime - currentTime) / 1000));
 
@@ -74,19 +74,21 @@ function updateStats() {
       chartData.push(viewCount);
       chart.update();
 
-      const last5 = chartData.length >= 6 ? viewCount - chartData[chartData.length - 6] : 0;
-      const last10 = chartData.length >= 11 ? viewCount - chartData[chartData.length - 11] : 0;
-      const last15 = chartData.length >= 16 ? viewCount - chartData[chartData.length - 16] : 0;
-      const last20 = chartData.length >= 21 ? viewCount - chartData[chartData.length - 21] : 0;
-      const last25 = chartData.length >= 26 ? viewCount - chartData[chartData.length - 26] : 0;
-      const last30 = chartData.length >= 31 ? viewCount - chartData[chartData.length - 31] : 0;
-      const avg15 = last15 / 15;
+      const getDiff = (mins) => chartData.length > mins ? viewCount - chartData[chartData.length - mins] : 0;
 
-      const requiredRate = timeLeftMinutes > 0 ? (targetViews - viewCount) / timeLeftMinutes : 0;
-      const requiredNext5 = requiredRate * 5;
-      const projectedViews = Math.floor(viewCount + (last5 / 5 * timeLeftMinutes));
-      const forecast = projectedViews >= targetViews ? "Yes" : "No";
+      const last5 = getDiff(5);
+      const last10 = getDiff(10);
+      const last15 = getDiff(15);
+      const last20 = getDiff(20);
+      const last25 = getDiff(25);
+      const last30 = getDiff(30);
+
+      const avg15 = last15 / 15;
       const viewsLeft = Math.max(0, targetViews - viewCount);
+      const requiredRate = timeLeftMinutes > 0 ? viewsLeft / timeLeftMinutes : 0;
+      const requiredNext5 = requiredRate * 5;
+      const projectedViews = Math.floor(viewCount + (avg15 * timeLeftMinutes));
+      const forecast = projectedViews >= targetViews ? "Yes" : "No";
 
       document.getElementById("liveViews").innerText = viewCount.toLocaleString();
       document.getElementById("last5Min").innerText = last5.toLocaleString();
@@ -100,23 +102,45 @@ function updateStats() {
       document.getElementById("requiredNext5").innerText = Math.round(requiredNext5).toLocaleString();
       document.getElementById("projectedViews").innerText = projectedViews.toLocaleString();
       document.getElementById("forecast").innerText = forecast;
-
-      const timeLeftString = `${timeLeftMinutes}:${(60 - currentTime.getSeconds()).toString().padStart(2, "0")}`;
-      document.getElementById("timeLeft").innerText = timeLeftString;
+      document.getElementById("timeLeft").innerText = `${timeLeftMinutes}:${(60 - currentTime.getSeconds()).toString().padStart(2, "0")}`;
 
       const viewsLeftEl = document.getElementById("viewsLeft");
       viewsLeftEl.innerText = viewsLeft.toLocaleString();
-      viewsLeftEl.classList.remove("green", "red", "neutral");
-      viewsLeftEl.classList.add(forecast === "Yes" ? "green" : "red");
+      viewsLeftEl.className = forecast === "Yes" ? "green" : "red";
 
-      // 🟡 Spike Calculation
-      const spikeList = document.getElementById("spikeList");
-      spikeList.innerHTML = "";
+      // Update spike list
+      updateSpikeList(viewCount, viewsLeft, currentTime);
+    })
+    .catch(err => console.error("YouTube API error:", err));
+}
 
-      const spikes = [];
-      let spikeTime = new Date(firstSpikeTime);
-      while (spikeTime <= endTime) {
-        if (spikeTime > currentTime) {
-          spikes.push(new Date(spikeTime));
-        }
-        spikeTime.setMinutes(sp
+function updateSpikeList(currentViews, viewsLeft, currentTime) {
+  const list = document.getElementById("spikeList");
+  list.innerHTML = "";
+
+  if (!firstSpikeTime || !spikeInterval) return;
+
+  let spikeTimes = [];
+  let spikeTime = new Date(firstSpikeTime);
+
+  while (spikeTime <= endTime) {
+    if (spikeTime > currentTime) {
+      spikeTimes.push(new Date(spikeTime));
+    }
+    spikeTime.setMinutes(spikeTime.getMinutes() + spikeInterval);
+  }
+
+  const viewsPerSpike = Math.ceil(viewsLeft / spikeTimes.length);
+  spikeTimes.forEach(time => {
+    const li = document.createElement("li");
+    li.innerText = `${time.toLocaleString()} - ${viewsPerSpike.toLocaleString()} views`;
+    list.appendChild(li);
+  });
+}
+
+function updateSpikeTimes() {
+  const firstSpikeTimeString = document.getElementById("firstSpikeTime").value;
+  spikeInterval = parseInt(document.getElementById("spikeInterval").value);
+  if (!firstSpikeTimeString || !spikeInterval) return;
+  firstSpikeTime = new Date(firstSpikeTimeString);
+}
