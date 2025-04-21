@@ -1,9 +1,9 @@
-let chart;
+let chart; 
 let chartData = [];
 let chartLabels = [];
 let chartTimestamps = [];
 let tracking = false;
-let interval;
+let interval;  
 let startTime;
 let endTime;
 let videoId = "";
@@ -56,6 +56,8 @@ function initChart() {
       }]
     },
     options: {
+      responsive: true,
+      maintainAspectRatio: false,
       scales: {
         y: { beginAtZero: false }
       }
@@ -75,11 +77,9 @@ function updateStats() {
       chartTimestamps.push(currentTime);
       chart.update();
 
-      // Time left
       const timeLeftMinutes = Math.max(0, Math.floor((endTime - currentTime) / 60000));
       const viewsLeft = Math.max(0, targetViews - viewCount);
 
-      // Views over last X minutes using timestamps
       function getViewsInLastMinutes(minutes) {
         const cutoff = new Date(currentTime.getTime() - minutes * 60000);
         for (let i = chartTimestamps.length - 1; i >= 0; i--) {
@@ -104,7 +104,6 @@ function updateStats() {
       const projectedViews = Math.floor(viewCount + (viewsPerMin * timeLeftMinutes));
       const forecast = projectedViews >= targetViews ? "Yes" : "No";
 
-      // Update DOM
       document.getElementById("liveViews").innerText = viewCount.toLocaleString();
       document.getElementById("last5Min").innerText = last5.toLocaleString();
       document.getElementById("last10Min").innerText = last10.toLocaleString();
@@ -148,7 +147,15 @@ function updateSpikeForecast(viewsLeft, currentTime) {
     spikeTime.setMinutes(spikeTime.getMinutes() + spikeInterval);
   }
 
+  if (spikes.length === 0) return;
+
   const viewsPerSpike = Math.ceil(viewsLeft / spikes.length);
+
+  const heading = document.createElement("p");
+  heading.textContent = "Upcoming Spike Times & Required Views:";
+  heading.style.fontWeight = "bold";
+  heading.style.marginBottom = "0.5rem";
+  forecastContainer.appendChild(heading);
 
   const ul = document.createElement("ul");
   spikes.forEach(time => {
